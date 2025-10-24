@@ -86,7 +86,7 @@ namespace poker {
     inline constexpr int King = 13;
     inline constexpr int Ace = 14;
 
-    [[nodiscard]] constexpr unsigned short eval_5cards(int c1, int c2, int c3, int c4, int c5) noexcept;
+
 
     // Extract rank from card encoding
     constexpr int RANK(int x) noexcept {
@@ -107,6 +107,30 @@ namespace poker {
     }
 
     void print_hand(Hand hand);
+    [[nodiscard]] constexpr unsigned find_fast(unsigned u) noexcept;
+
+
+    [[nodiscard]] constexpr unsigned short eval_5cards(int c1, int c2, int c3, int c4, int c5) noexcept
+    {
+        // Rank bitmask for unique5/flushes index
+        const uint32_t qbits = (c1 | c2 | c3 | c4 | c5) >> 16;
+
+        // Compute "all-same-suit?" once
+        const uint32_t suit_mask = (c1 & c2 & c3 & c4 & c5) & 0xF000;
+
+        // Straights & high-card (unique5 non-zero only in those cases)
+        if (uint16_t s = unique5[qbits]; s != 0) 
+        {
+            // Straight flush? Only if all suits match.
+            if (suit_mask) return flushes[qbits];
+            return s;
+        }
+
+        int q = qbits;
+        // Perfect-hash lookup for remaining hands
+        q = (c1 & 0xff) * (c2 & 0xff) * (c3 & 0xff) * (c4 & 0xff) * (c5 & 0xff);
+        return hash_values[find_fast(q)];
+    }
 
     // Evaluate the best five-card hand from seven cards
    // Uses brute-force enumeration of all 21 combinations
@@ -132,8 +156,6 @@ namespace poker {
         return best;
     }
 
-
-    [[nodiscard]] constexpr unsigned find_fast(unsigned u) noexcept;
 
     // Constexpr function definitions (must be in header)
     [[nodiscard]] constexpr Deck init_deck() noexcept
@@ -184,25 +206,6 @@ namespace poker {
         unsigned a = (u + (u << 2)) >> 19;
         unsigned r = a ^ hash_adjust[b];
         return r;
-    }
-
-    [[nodiscard]] constexpr unsigned short eval_5cards(int c1, int c2, int c3, int c4, int c5) noexcept
-    {
-        int q = (c1 | c2 | c3 | c4 | c5) >> 16;
-
-        // Check for Flushes and Straight Flushes
-        if (c1 & c2 & c3 & c4 & c5 & 0xf000) {
-            return flushes[q];
-        }
-
-        // Check for Straights and High Card hands
-        if (short s = unique5[q]; s != 0) {
-            return s;
-        }
-
-        // Perfect-hash lookup for remaining hands
-        q = (c1 & 0xff) * (c2 & 0xff) * (c3 & 0xff) * (c4 & 0xff) * (c5 & 0xff);
-        return hash_values[find_fast(q)];
     }
 
     [[nodiscard]] constexpr unsigned short eval_5hand(Hand hand) noexcept

@@ -23,7 +23,7 @@ using namespace poker;
 using namespace std::chrono;
 
 // Configuration: Set to 5 or 7 to choose evaluation type
-constexpr int CARD_COUNT = 7;
+constexpr int CARD_COUNT = 5;
 
 // Generate random poker hands from a deck
 template<int N>
